@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: somebot-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: somebot
+  template:
+    metadata:
+      labels:
+        app: somebot
+    spec:
+      containers:
+        - name: somebot
+          image: ghcr.io/richarddrochner/somebot-with-trivy-output:latest
+          ports:
+            - containerPort: 7861
+          # command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+      imagePullSecrets:
+        - name: heybot2secret  # Das ImagePullSecret, das du vorher erstellt hast

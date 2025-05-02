@@ -1,0 +1,10 @@
+# Use the already built image as the base
+FROM ghcr.io/richarddrochner/somebot:latest
+
+# Copy the Trivy scan output file into the image
+COPY trivy_output.json /app/trivy_output.json
+
+# Expose the port
+EXPOSE 7861
+
+CMD ["python", "mcp_server/mcp_server.py"]
