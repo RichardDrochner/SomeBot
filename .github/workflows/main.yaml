@@ -48,3 +48,84 @@ jobs:
       - name: Push the Docker image to GitHub Container Registry
         run: |
           docker push ghcr.io/$USER/somebot-with-trivy-output:latest
+
+  bandit-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}  # Use the GitHub username (actor)
+          password: ${{ secrets.SOMEBOT_SECRET }}  # Use the secret token
+
+      # Python code scanning with Bandit
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit scan
+        run: |
+          bandit -r . -f json -o bandit_report.json
+          # Fail if high severity issues found
+          bandit -r . -ll
+
+      # Docker image scanning with OWASP tools
+      - name: Build Docker image
+        run: docker build -t ghcr.io/$USER/somebot:latest .
+
+      - name: Install OWASP Dependency-Check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip openjdk-11-jre
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.2.1/dependency-check-8.2.1-release.zip
+          unzip dependency-check-8.2.1-release.zip -d /opt
+          rm dependency-check-8.2.1-release.zip
+
+      - name: Run Dependency-Check on Docker image
+        run: |
+          docker save ghcr.io/$USER/somebot -o image.tar
+          /opt/dependency-check/bin/dependency-check.sh \
+            --scan image.tar \
+            --project "MyApp" \
+            --out ./reports \
+            --format JSON \
+            --format HTML
+
+      # Upload all reports
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit_report.json
+            reports/*
+
+      # Optional: Create summary report
+      - name: Create summary
+        run: |
+          echo "# Security Scan Summary" > summary.md
+          echo "## Bandit Results" >> summary.md
+          echo "```json" >> summary.md
+          cat bandit_report.json | jq '.metrics | {files: .files, issues: .loc}' >> summary.md
+          echo "```" >> summary.md
+          echo "## Dependency Check Results" >> summary.md
+          cat reports/dependency-check-report.json | jq '.summary | {dependencies: .totalDependencies, vulnerabilities: .totalVulnerabilities}' >> summary.md
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-summary
+          path: summary.md

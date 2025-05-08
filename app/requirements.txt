@@ -1,0 +1,6 @@
+aiohttp
+python-dotenv
+discord.py
+fastapi
+uvicorn
+ollama
