@@ -106,26 +106,9 @@ jobs:
 
       # Upload all reports
       - name: Upload security reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
             bandit_report.json
             reports/*
-
-      # Optional: Create summary report
-      - name: Create summary
-        run: |
-          echo "# Security Scan Summary" > summary.md
-          echo "## Bandit Results" >> summary.md
-          echo "```json" >> summary.md
-          cat bandit_report.json | jq '.metrics | {files: .files, issues: .loc}' >> summary.md
-          echo "```" >> summary.md
-          echo "## Dependency Check Results" >> summary.md
-          cat reports/dependency-check-report.json | jq '.summary | {dependencies: .totalDependencies, vulnerabilities: .totalVulnerabilities}' >> summary.md
-
-      - name: Upload summary
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-summary
-          path: summary.md
