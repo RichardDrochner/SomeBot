@@ -62,6 +62,32 @@ class SecurityLogProcessor:
 
         return processed
 
+    # Load Trivy logs from file
+    def load_trivy_logs(log_path="trivy_output.json"):
+        try:
+            with open(log_path, "r") as file:
+                raw_data = json.load(file)
+                logging.debug(f"Raw Trivy log content: {json.dumps(raw_data, indent=2)}")
+
+                vulnerabilities = []
+                if isinstance(raw_data, dict) and "Results" in raw_data:
+                    for result in raw_data["Results"]:
+                        vulns = result.get("Vulnerabilities", [])
+                        if isinstance(vulns, list):
+                            vulnerabilities.extend(vulns)
+                elif isinstance(raw_data, dict) and "vulnerabilities" in raw_data:
+                    vulnerabilities = raw_data["vulnerabilities"]
+
+                if not isinstance(vulnerabilities, list):
+                    logging.error("Log format error: Logs should be a list of dictionaries.")
+                    return []
+
+                logging.info(f"Extracted {len(vulnerabilities)} vulnerability entries.")
+                return vulnerabilities
+        except Exception as e:
+            logging.error(f"Error loading logs: {e}")
+            return []
+
 
 # Load environment variables
 load_dotenv()
@@ -75,40 +101,13 @@ DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
 if not DISCORD_WEBHOOK_URL:
     raise ValueError("DISCORD_WEBHOOK_URL is missing in the .env file.")
 
-
-# Load Trivy logs from file
-def load_trivy_logs(log_path="trivy_output.json"):
+async def generate_with_ollama(prompt: str) -> str:
     try:
-        with open(log_path, "r") as file:
-            raw_data = json.load(file)
-            logging.debug(f"Raw Trivy log content: {json.dumps(raw_data, indent=2)}")
-
-            vulnerabilities = []
-            if isinstance(raw_data, dict) and "Results" in raw_data:
-                for result in raw_data["Results"]:
-                    vulns = result.get("Vulnerabilities", [])
-                    if isinstance(vulns, list):
-                        vulnerabilities.extend(vulns)
-            elif isinstance(raw_data, dict) and "vulnerabilities" in raw_data:
-                vulnerabilities = raw_data["vulnerabilities"]
-
-            if not isinstance(vulnerabilities, list):
-                logging.error("Log format error: Logs should be a list of dictionaries.")
-                return []
-
-            logging.info(f"Extracted {len(vulnerabilities)} vulnerability entries.")
-            return vulnerabilities
+        response = ollama.generate(prompt)
+        return response["text"]
     except Exception as e:
-        logging.error(f"Error loading logs: {e}")
-        return []
-
-    async def generate_with_ollama(self, prompt: str) -> str:
-        try:
-            response = ollama.generate(prompt)
-            return response["text"]
-        except Exception as e:
-            logging.error(f"Ollama generation failed: {e}")
-            return "Error during Ollama generation."
+        logging.error(f"Ollama generation failed: {e}")
+        return "Error during Ollama generation."
 
 
 # Clean output for Discord
@@ -151,7 +150,7 @@ async def main():
     prompt = f"Bandit Report: {json.dumps(bandit_report, indent=2)}\nTrivy Logs: {json.dumps(trivy_logs, indent=2)}"
     logging.info("Generated prompt for Ollama.")
 
-    response = await processor.generate_with_ollama(prompt)
+    response = await generate_with_ollama(prompt)
     print("Ollama response:", response)
 
 
