@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, List
 
+
 class SecurityLogProcessor:
     def __init__(self, log_dir: str = "security_reports"):
         self.log_dir = Path(log_dir)
@@ -74,6 +75,7 @@ DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
 if not DISCORD_WEBHOOK_URL:
     raise ValueError("DISCORD_WEBHOOK_URL is missing in the .env file.")
 
+
 # Load Trivy logs from file
 def load_trivy_logs(log_path="trivy_output.json"):
     try:
@@ -100,6 +102,14 @@ def load_trivy_logs(log_path="trivy_output.json"):
         logging.error(f"Error loading logs: {e}")
         return []
 
+    async def generate_with_ollama(self, prompt: str) -> str:
+        try:
+            response = ollama.generate(prompt)
+            return response["text"]
+        except Exception as e:
+            logging.error(f"Ollama generation failed: {e}")
+            return "Error during Ollama generation."
+
 
 # Clean output for Discord
 def clean_discord_message(text, max_length=1900):
@@ -111,6 +121,7 @@ def clean_discord_message(text, max_length=1900):
     except Exception as e:
         logging.error(f"Error cleaning message: {e}")
         return ": Message could not be processed."
+
 
 # Send to Discord
 async def send_discord_message_async(message):
@@ -129,34 +140,20 @@ async def send_discord_message_async(message):
     except Exception as e:
         logging.error(f"Error sending to Discord: {e}")
 
+
 # Main entry
 async def main():
-    try:
-        processor = SecurityLogProcessor()
-        reports: []
-        if (processor.log_dir / "bandit_report.json").exists():
-            reports.append(processor.load_bandit_report())
-        if (processor.log_dir / "dependency-check-report.json").exists():
-            reports.append(processor.load_dependency_check_report())
+    logging.basicConfig(level=logging.INFO)
+    processor = SecurityLogProcessor()
+    bandit_report = processor.load_bandit_report()
+    trivy_logs = processor.load_trivy_logs()
 
-        logs = load_trivy_logs()
-        if not logs:
-            logging.error("No valid logs to process.")
-            return
+    prompt = f"Bandit Report: {json.dumps(bandit_report, indent=2)}\nTrivy Logs: {json.dumps(trivy_logs, indent=2)}"
+    logging.info("Generated prompt for Ollama.")
 
-        reports.append(logs)
+    response = await processor.generate_with_ollama(prompt)
+    print("Ollama response:", response)
 
-        prompt = build_prompt_with_logs(reports)
-        if not prompt:
-            logging.error("Failed to build prompt.")
-            return
-
-        response = await send_prompt_to_deepseek(prompt, temperature=1.1)
-        final_message = clean_discord_message(response)
-        await send_discord_message_async(final_message)
-
-    except Exception as e:
-        logging.error(f"Error in main process: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
