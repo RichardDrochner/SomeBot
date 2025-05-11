@@ -85,9 +85,12 @@ jobs:
 
       # push report to repo
       - name: Commit and push report
+        env:
+          GH_TOKEN: ${{ secrets.SOMEBOT_SECRET }}
         run: |
           git config --global user.name "richarddrochner"
           git config --global user.email "len_drochner@web.de"
+          git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
           git add security-reports/
           git commit -m "Add security scan report [skip ci]" || echo "No changes to commit"
           git push
