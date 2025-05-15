@@ -20,4 +20,4 @@ spec:
             - containerPort: 7861
           # command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
       imagePullSecrets:
-        - name: heybot2secret  # Das ImagePullSecret, das du vorher erstellt hast
+        - name: somebot_secret  # Das ImagePullSecret, das du vorher erstellt hast
