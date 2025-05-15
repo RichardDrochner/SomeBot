@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List
 
 
+
 class SecurityLogProcessor:
     def __init__(self, log_dir: str = "security_reports"):
         self.log_dir = Path(log_dir)
