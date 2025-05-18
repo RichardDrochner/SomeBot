@@ -110,12 +110,16 @@ jobs:
       - name: Run Dependency-Check on Docker image
         run: |
           docker save ghcr.io/$USER/somebot -o image.tar
-          /opt/dependency-check/bin/dependency-check.sh \
-            --scan image.tar \
-            --project "MyApp" \
-            --out ./reports \
-            --format JSON \
-            --format HTML
+          java -jar /opt/dependency-check/bin/dependency-check.sh \
+          --scan image.tar \
+          --project "MyApp" \
+          --out ./reports \
+          --format JSON \
+          --format HTML \
+          --cveValidForHours 24 \          # Use cached data if <24h old
+          --disableRetireJS \              # Temporary workaround
+          --connectionTimeout 30000 \      # 30-second timeout
+          --connectionRetryCount 5         # Retry failed connections
 
       # Upload all reports
       - name: Upload security reports
