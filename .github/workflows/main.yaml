@@ -109,16 +109,14 @@ jobs:
 
       - name: Run Dependency-Check on Docker image
         run: |
-          # Convert owner name to lowercase
-          LOWER_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          
-          docker save ghcr.io/${LOWER_OWNER}/somebot -o image.tar
-          java -jar /opt/dependency-check/lib/dependency-check-core.jar \
+          docker save ghcr.io/$USER/somebot -o image.tar
+          /opt/dependency-check/bin/dependency-check.sh \
           --scan image.tar \
           --project "MyApp" \
           --out ./reports \
           --format JSON \
           --format HTML \
+          --cveValidForHours 24 \          # Use cached data if <24h old
           --disableRetireJS \              # Temporary workaround
           --connectionTimeout 30000 \      # 30-second timeout
           --connectionRetryCount 5         # Retry failed connections
