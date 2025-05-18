@@ -80,7 +80,7 @@ jobs:
 
       - name: Run Bandit scan
         run: |
-          bandit -r . -f json -o security-reports/bandit_report.json
+          bandit -r . -f json -o bandit_report.json
           # Fail if high severity issues found
           bandit -r . -ll
 
