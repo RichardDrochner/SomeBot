@@ -50,6 +50,8 @@ jobs:
           docker push ghcr.io/$USER/somebot-with-trivy-output:latest
 
   bandit-scan:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
