@@ -103,13 +103,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip openjdk-11-jre
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.2.1/dependency-check-8.2.1-release.zip
-          unzip dependency-check-8.2.1-release.zip -d /opt
-          rm dependency-check-8.2.1-release.zip
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-release.zip
+          unzip dependency-check-8.4.0-release.zip -d /opt/
+          rm dependency-check-8.4.0-release.zip
 
       - name: Run Dependency-Check on Docker image
         run: |
-          docker save ghcr.io/$USER/somebot -o image.tar
+          docker save ghcr.io/${{ github.repository_owner }}/somebot -o image.tar
           java -jar /opt/dependency-check/lib/dependency-check-core.jar \
           --scan image.tar \
           --project "MyApp" \
