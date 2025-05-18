@@ -125,3 +125,10 @@ jobs:
           path: |
             bandit_report.json
             reports/*
+
+      # Download the reports
+      - name: Download security reports
+        uses: actions/download-artifact@v4
+        with:
+          name: security-reports
+          path: app/downloaded-reports/
