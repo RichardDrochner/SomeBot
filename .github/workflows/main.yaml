@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: [ "3.9" ]
 
     steps:
       - name: Checkout code
@@ -84,16 +84,16 @@ jobs:
           bandit -r . -ll
 
       # push report to repo
-  #    - name: Commit and push report
-  #     env:
-  #        GH_TOKEN: ${{ secrets.SOMEBOT_SECRET }}
-  #      run: |
-  #        git config --global user.name "richarddrochner"
-  #        git config --global user.email "len_drochner@web.de"
-  #        git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
-  #        git add security-reports/
-  #        git commit -m "Add security scan report [skip ci]" || echo "No changes to commit"
-  #        git push
+      #    - name: Commit and push report
+      #     env:
+      #        GH_TOKEN: ${{ secrets.SOMEBOT_SECRET }}
+      #      run: |
+      #        git config --global user.name "richarddrochner"
+      #        git config --global user.email "len_drochner@web.de"
+      #        git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}.git"
+      #        git add security-reports/
+      #        git commit -m "Add security scan report [skip ci]" || echo "No changes to commit"
+      #        git push
 
       # Docker image scanning with OWASP tools
       - name: Build Docker image
@@ -133,3 +133,7 @@ jobs:
         with:
           name: security-reports
           path: app/downloaded-reports/
+
+      # find downloaded reports
+      - name: look for reports
+        run: find app/downloaded-reports/ -type f

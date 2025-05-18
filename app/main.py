@@ -11,13 +11,16 @@ from typing import Dict, List
 
 
 class SecurityLogProcessor:
-    def __init__(self, log_dir: str = "security_reports"):
-        self.log_dir = Path(log_dir)
 
-    def load_bandit_report(self) -> Dict:
+    def __init__(self, report_dir: str = "app/downloaded-reports"):
+        self.report_dir = Path(report_dir)
+
+    def load_bandit_report(self):
         """Load and process Bandit JSON report"""
-        bandit_file = self.log_dir / "bandit_report.json"
-        with open(bandit_file) as f:
+        bandit_report = self.report_dir / "bandit_report.json"
+        if not Path("app/downloaded-reports/bandit_report.json").exists():
+            raise FileNotFoundError("Run security scan first!")
+        with open(bandit_report, "r") as f:
             report = json.load(f)
 
         # Extract key information
@@ -41,7 +44,7 @@ class SecurityLogProcessor:
 
     def load_dependency_check_report(self) -> Dict:
         """Load and process Dependency-Check JSON report"""
-        dep_file = self.log_dir / "dependency-check-report.json"
+        dep_file = self.report_dir / "dependency-check-report.json"
         with open(dep_file) as f:
             report = json.load(f)
 
