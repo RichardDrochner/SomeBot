@@ -137,3 +137,9 @@ jobs:
       # find downloaded reports
       - name: look for reports
         run: find app/downloaded-reports/ -type f
+
+      - name: Save permanently
+        run: |
+          git add app/downloaded-reports/
+          git commit -m "Add scan reports $(date)"
+          git push

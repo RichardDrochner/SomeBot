@@ -14,12 +14,20 @@ class SecurityLogProcessor:
 
     def __init__(self, report_dir: str = "app/downloaded-reports"):
         self.report_dir = Path(report_dir)
+        print(f"Looking for reports in: {self.report_dir.absolute()}")
+
+    def _validate_path(self, file_path: Path):
+        """Helper to verify files exist"""
+        if not file_path.exists():
+            raise FileNotFoundError(
+                f"Report not found at: {file_path}\n"
+                f"Directory contents: {list(self.report_dir.glob('*'))}"
+            )
 
     def load_bandit_report(self):
         """Load and process Bandit JSON report"""
         bandit_report = self.report_dir / "bandit_report.json"
-        if not Path("app/downloaded-reports/bandit_report.json").exists():
-            raise FileNotFoundError("Run security scan first!")
+        self._validate_path(bandit_report)
         with open(bandit_report, "r") as f:
             report = json.load(f)
 
