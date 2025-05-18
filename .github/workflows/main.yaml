@@ -117,7 +117,6 @@ jobs:
           --format JSON \
           --format HTML \
           --cveValidForHours 24 \          # Use cached data if <24h old
-          --disableRetireJS \              # Temporary workaround
           --connectionTimeout 30000 \      # 30-second timeout
           --connectionRetryCount 5         # Retry failed connections
 
