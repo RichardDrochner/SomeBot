@@ -33,9 +33,6 @@ spec:
         - name: MODEL_HUMOR
           value: "/app/humor_prompt.txt"
         volumeMounts:
-        - name: config-volume
-          mountPath: /app/humor_prompt.txt
-          subPath: humor_prompt.txt
         - name: reports-volume
           mountPath: /app/downloaded-reports
         resources:
