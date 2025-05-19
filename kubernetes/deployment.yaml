@@ -15,9 +15,7 @@ spec:
     spec:
       containers:
         - name: somebot
-          image: ghcr.io/richarddrochner/somebot-with-trivy-output:latest
-          ports:
-            - containerPort: 7861
+          image: ghcr.io/richarddrochner/somebot:latest
           # command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
       imagePullSecrets:
         - name: somebot-secret  # Das ImagePullSecret, das du vorher erstellt hast
