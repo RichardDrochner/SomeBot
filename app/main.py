@@ -6,75 +6,7 @@ import os
 import ollama
 from dotenv import load_dotenv
 from pathlib import Path
-from typing import Dict, List
-
-
-
-class SecurityLogProcessor:
-
-    def __init__(self, report_dir: str = "downloaded-reports"):
-        self.report_dir = Path(report_dir)
-        print(f"Looking for reports in: {self.report_dir.absolute()}")
-
-    def _validate_path(self, file_path: Path):
-        """Helper to verify files exist"""
-        if not file_path.exists():
-            raise FileNotFoundError(
-                f"Report not found at: {file_path}\n"
-                f"Directory contents: {list(self.report_dir.glob('*'))}"
-            )
-
-    def load_bandit_report(self):
-        """Load and process Bandit JSON report"""
-        bandit_report = self.report_dir / "bandit_report.json"
-        self._validate_path(bandit_report)
-        with open(bandit_report, "r") as f:
-            report = json.load(f)
-
-        # Extract key information
-        processed = {
-            "scan_type": "Bandit",
-            "metrics": report.get("metrics", {}),
-            "issues": []
-        }
-
-        for issue in report.get("results", []):
-            processed["issues"].append({
-                "severity": issue.get("issue_severity"),
-                "confidence": issue.get("issue_confidence"),
-                "type": issue.get("test_id"),
-                "description": issue.get("issue_text"),
-                "location": f"{issue.get('filename')}:{issue.get('line_number')}",
-                "code": issue.get("code")
-            })
-
-        return processed
-
-    def load_dependency_check_report(self) -> Dict:
-        """Load and process Dependency-Check JSON report"""
-        dep_file = self.report_dir / "reports/dependency-check-report.json"
-        with open(dep_file) as f:
-            report = json.load(f)
-
-        processed = {
-            "scan_type": "Dependency-Check",
-            "summary": report.get("summary", {}),
-            "vulnerabilities": []
-        }
-
-        for vuln in report.get("dependencies", []):
-            for v in vuln.get("vulnerabilities", []):
-                processed["vulnerabilities"].append({
-                    "severity": v.get("severity"),
-                    "name": v.get("name"),
-                    "description": v.get("description"),
-                    "package": f"{vuln.get('fileName')} ({vuln.get('filePath')})",
-                    "cwe": v.get("cwes", [])
-                })
-
-        return processed
-
-
+from typing import Dict, List, Optional
 
 # Load environment variables
 load_dotenv()
@@ -84,9 +16,30 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Variables from the .env file
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
+MODEL_HUMOR_PATH = os.getenv('MODEL_HUMOR')
 
 if not DISCORD_WEBHOOK_URL:
     raise ValueError("DISCORD_WEBHOOK_URL is missing in the .env file.")
+if not MODEL_HUMOR_PATH:
+    raise ValueError("MODEL_HUMOR_PATH is missing in the .env file.")
+
+def load_security_logs(log_path: str) -> List[Dict]:
+    """Load and validate security logs from file"""
+    try:
+        if not Path(log_path).exists():
+            raise FileNotFoundError(f"Log file not found: {log_path}")
+
+        with open(log_path, "r") as file:
+            data = json.load(file)
+
+        if not isinstance(data, (dict, list)):
+            raise ValueError("Invalid log format: expected JSON object or array")
+
+        return data if isinstance(data, list) else [data]
+
+    except Exception as e:
+        logging.error(f"Error loading {log_path}: {str(e)}")
+        return []
 
 # Load Trivy logs from file
 def load_trivy_logs(log_path="trivy_output.json"):
@@ -114,13 +67,104 @@ def load_trivy_logs(log_path="trivy_output.json"):
         logging.error(f"Error loading logs: {e}")
         return []
 
-async def generate_with_ollama(prompt: str) -> str:
+def build_prompt_with_logs(logs: List[Dict]) -> str:
     try:
-        response = ollama.generate(prompt)
-        return response["text"]
+        # Read the humor base from file (contains the SYSTEM prompt)
+        humor_base = ""
+        if Path(MODEL_HUMOR_PATH).exists():
+            with open(MODEL_HUMOR_PATH, "r") as f:
+                humor_base = f.read().strip()
+
+        prompt_parts = [
+            "You are a sarcastic security assistant.",
+            humor_base,
+            "Here are the vulnerabilities that need your sarcastic expertise:"
+        ]
+
+        for log in logs:
+            if not isinstance(log, dict):
+                continue
+
+            # Bandit report processing
+            if log.get("scan_type") == "Bandit":
+                metrics = log.get("metrics", {}).get("_totals", {})
+                prompt_parts.append(
+                    f"\n## Bandit Results\n"
+                    f"- Files scanned: {metrics.get('loc', 'N/A')} lines\n"
+                    f"- Issues found: {len(log.get('issues', []))}\n"
+                )
+                for issue in log.get("issues", []):
+                    prompt_parts.append(
+                        f"\n### {issue.get('severity', 'UNKNOWN')} severity\n"
+                        f"Location: {issue.get('location', 'unknown')}\n"
+                        f"Code:\n```python\n{issue.get('code', '')}\n```"
+                    )
+
+            # Dependency-Check processing
+            elif log.get("scan_type") == "Dependency-Check":
+                summary = log.get("summary", {})
+                prompt_parts.append(
+                    f"\n## Dependency Check Results\n"
+                    f"- Dependencies: {summary.get('totalDependencies', 0)}\n"
+                    f"- Vulnerabilities: {summary.get('totalVulnerabilities', 0)}\n"
+                )
+                for vuln in log.get("vulnerabilities", []):
+                    prompt_parts.append(
+                        f"\n### {vuln.get('severity', 'MEDIUM')}\n"
+                        f"Package: {vuln.get('package', 'unknown')}\n"
+                        f"CWEs: {', '.join(vuln.get('cwe', [])) or 'None'}"
+                    )
+
+        prompt_parts.extend([
+            "\nNow provide sarcastic analysis with:",
+            "- Gordon Ramsay-level criticism",
+            "- Stand-up comedian timing",
+            "- Bonus points for pop culture references!"
+        ])
+
+        return "\n".join(prompt_parts)
+
     except Exception as e:
-        logging.error(f"Ollama generation failed: {e}")
-        return "Error during Ollama generation."
+        logging.error(f"Prompt generation failed: {str(e)}")
+        return ""
+
+def get_available_models() -> List[str]:
+    """Get list of available model names"""
+    try:
+        response = ollama.list()
+        # Handle both old and new API response formats
+        if 'models' in response:
+            return [model.get('model', model.get('name', 'unknown'))
+                   for model in response['models']]
+        return []
+    except Exception as e:
+        logging.error(f"Failed to get models: {e}")
+        return []
+
+async def generate_with_ollama(prompt: str, model: str = "llama3") -> Optional[str]:
+    """Generate analysis using Ollama"""
+    try:
+        # Get available models
+        available_models = get_available_models()
+        logging.debug(f"Available models: {available_models}")
+
+        if not available_models:
+            raise ValueError("No models available - run 'ollama pull llama3' first")
+
+        if model not in available_models:
+            # Try with the first available model
+            model = available_models[0]
+            logging.warning(f"Requested model not found, using {model} instead")
+
+        response = ollama.generate(
+            model=model,
+            prompt=prompt,
+            stream=False
+        )
+        return response.get("response")
+    except Exception as e:
+        logging.error(f"AI generation failed: {str(e)}")
+        return "I tried to be witty but crashed harder than your last deployment."
 
 
 # Clean output for Discord
@@ -155,16 +199,24 @@ async def send_discord_message_async(message):
 
 # Main entry
 async def main():
-    logging.basicConfig(level=logging.INFO)
-    processor = SecurityLogProcessor()
-    bandit_report = processor.load_bandit_report()
-    trivy_logs = load_trivy_logs()
+    try:
+        logging.basicConfig(level=logging.INFO)
+        bandit_report = load_security_logs("downloaded-reports/bandit_report.json")
+        dependency_check_report = load_security_logs("downloaded-reports/reports/dependency-check-report.json")
+        #trivy_logs = load_trivy_logs()
+        logs = [log for logs in [bandit_report, dependency_check_report] for log in logs]
 
-    prompt = f"Bandit Report: {json.dumps(bandit_report, indent=2)}\nTrivy Logs: {json.dumps(trivy_logs, indent=2)}"
-    logging.info("Generated prompt for Ollama.")
+        prompt = build_prompt_with_logs(logs)
+        logging.info("Generated prompt for Ollama.")
 
-    response = await generate_with_ollama(prompt)
-    print("Ollama response:", response)
+        response = await generate_with_ollama(prompt)
+        print("Ollama response:", response)
+
+        final_message = clean_discord_message(response)
+        await send_discord_message_async(final_message)
+
+    except Exception as e:
+        logging.error(f"Error in main process: {e}")
 
 
 if __name__ == "__main__":
