@@ -5,6 +5,8 @@ metadata:
   namespace: default
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: somebot
@@ -12,10 +14,42 @@ spec:
     metadata:
       labels:
         app: somebot
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
     spec:
       containers:
-        - name: somebot
-          image: ghcr.io/richarddrochner/somebot:latest
-          # command: ["/bin/bash", "-c", "while true; do sleep 3600; done"]
+      - name: somebot
+        image: ghcr.io/richarddrochner/somebot:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: OLLAMA_HOST
+          value: "ollama-service.default.svc.cluster.local:11434"
+        - name: DISCORD_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: somebot-secrets
+              key: discord-webhook-url
+        - name: MODEL_HUMOR
+          value: "/app/humor_prompt.txt"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/humor_prompt.txt
+          subPath: humor_prompt.txt
+        - name: reports-volume
+          mountPath: /app/downloaded-reports
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
       imagePullSecrets:
-        - name: somebot-secret  # Das ImagePullSecret, das du vorher erstellt hast
+        - name: somebot-secret
+      volumes:
+      - name: config-volume
+        configMap:
+          name: somebot-config
+      - name: reports-volume
+        emptyDir: {}
