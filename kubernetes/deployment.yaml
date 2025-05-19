@@ -28,6 +28,7 @@ spec:
         - name: DISCORD_WEBHOOK_URL
           valueFrom:
             secretKeyRef:
+              name: SOMEBOT_SECRET
               key: discord-webhook-url
         - name: MODEL_HUMOR
           value: "/app/humor_prompt.txt"
