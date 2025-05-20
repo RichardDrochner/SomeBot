@@ -1,12 +1,9 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: somebot-app
   namespace: default
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
       app: somebot
@@ -21,6 +18,7 @@ spec:
       containers:
       - name: somebot
         image: ghcr.io/richarddrochner/somebot:latest
+        restartPolicy: Never
         workingDir: /app
         env:
         - name: OLLAMA_HOST
