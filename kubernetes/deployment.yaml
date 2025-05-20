@@ -18,12 +18,10 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8000"
     spec:
-      restartPolicy: OnFailure
       containers:
       - name: somebot
         image: ghcr.io/richarddrochner/somebot:latest
         workingDir: /app
-        command: ["python", "/app/main.py"]
         env:
         - name: OLLAMA_HOST
           value: "ollama-service:11434"
