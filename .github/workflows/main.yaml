@@ -134,3 +134,7 @@ jobs:
           git add app/downloaded-reports/
           git commit -m "Add security scan results $(date) [skip ci]"
           git push
+
+      - name: Push the Docker image to GitHub Container Registry
+        run: |
+          docker push ghcr.io/$USER/somebot:latest
