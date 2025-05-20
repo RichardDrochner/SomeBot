@@ -18,32 +18,27 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8000"
     spec:
+      restartPolicy: OnFailure
       containers:
       - name: somebot
         image: ghcr.io/richarddrochner/somebot:latest
-        imagePullPolicy: IfNotPresent
+        workingDir: /app
+        command: ["python", "/app/main.py"]
         env:
         - name: OLLAMA_HOST
-          value: "ollama-service.default.svc.cluster.local:11434"
+          value: "ollama-service:11434"
         - name: DISCORD_WEBHOOK_URL
           valueFrom:
             secretKeyRef:
               name: somebot-secrets
               key: discord-webhook-url
         - name: MODEL_HUMOR
-          value: "/model_humor.txt"
+          value: "model_humor.txt"
         volumeMounts:
-        - name: reports-volume
-          mountPath: /downloaded-reports
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
-          limits:
-            cpu: "1"
-            memory: "1Gi"
+          - name: app-volume
+            mountPath: /app
+      volumes:
+          - name: app-volume
+            emptyDir: { }
       imagePullSecrets:
         - name: somebot-secret
-      volumes:
-      - name: reports-volume
-        emptyDir: {}
