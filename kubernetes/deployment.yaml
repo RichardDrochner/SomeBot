@@ -31,10 +31,10 @@ spec:
               name: somebot-secrets
               key: discord-webhook-url
         - name: MODEL_HUMOR
-          value: "/app/humor_prompt.txt"
+          value: "/model_humor.txt"
         volumeMounts:
         - name: reports-volume
-          mountPath: /app/downloaded-reports
+          mountPath: /downloaded-reports
         resources:
           requests:
             cpu: "500m"
