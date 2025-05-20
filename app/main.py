@@ -199,24 +199,28 @@ async def send_discord_message_async(message):
 
 # Main entry
 async def main():
-    try:
-        logging.basicConfig(level=logging.INFO)
-        bandit_report = load_security_logs("downloaded-reports/bandit_report.json")
-        dependency_check_report = load_security_logs("downloaded-reports/reports/dependency-check-report.json")
-        #trivy_logs = load_trivy_logs()
-        logs = [log for logs in [bandit_report, dependency_check_report] for log in logs]
+    while True:
+        try:
+            logging.basicConfig(level=logging.INFO)
+            bandit_report = load_security_logs("downloaded-reports/bandit_report.json")
+            dependency_check_report = load_security_logs("downloaded-reports/reports/dependency-check-report.json")
+            #trivy_logs = load_trivy_logs()
+            logs = [log for logs in [bandit_report, dependency_check_report] for log in logs]
 
-        prompt = build_prompt_with_logs(logs)
-        logging.info("Generated prompt for Ollama.")
+            prompt = build_prompt_with_logs(logs)
+            logging.info("Generated prompt for Ollama.")
 
-        response = await generate_with_ollama(prompt)
-        print("Ollama response:", response)
+            response = await generate_with_ollama(prompt)
+            print("Ollama response:", response)
 
-        final_message = clean_discord_message(response)
-        await send_discord_message_async(final_message)
+            final_message = clean_discord_message(response)
+            await send_discord_message_async(final_message)
 
-    except Exception as e:
-        logging.error(f"Error in main process: {e}")
+            await asyncio.sleep(3600)  # Run every hour
+        except Exception as e:
+            print(f"Error: {e}")
+            await asyncio.sleep(60)
+
 
 
 if __name__ == "__main__":
