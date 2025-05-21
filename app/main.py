@@ -169,6 +169,7 @@ async def generate_with_ollama(prompt: str, model: str = "llama3") -> Optional[s
 
 # Clean output for Discord
 def clean_discord_message(text, max_length=1900):
+    """Clean and format message for Discord"""
     try:
         cleaned = text.encode("utf-8", "ignore").decode("utf-8").replace('\u0000', '')
         if len(cleaned) > max_length:
