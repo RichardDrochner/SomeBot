@@ -205,7 +205,7 @@ async def main():
             logging.basicConfig(level=logging.INFO)
             bandit_report = load_security_logs("downloaded-reports/bandit_report.json")
             dependency_check_report = load_security_logs("downloaded-reports/reports/dependency-check-report.json")
-            #trivy_logs = load_trivy_logs()
+
             logs = [log for logs in [bandit_report, dependency_check_report] for log in logs]
 
             prompt = build_prompt_with_logs(logs)
