@@ -78,7 +78,7 @@ def build_prompt_with_logs(logs: List[Dict]) -> str:
         prompt_parts = [
             "You are a sarcastic security assistant.",
             humor_base,
-            "Here are the vulnerabilities that need your sarcastic expertise:"
+            "Here are the vulnerabilities that need your fatherly expertise and dad jokes:"
         ]
 
         for log in logs:
@@ -116,10 +116,10 @@ def build_prompt_with_logs(logs: List[Dict]) -> str:
                     )
 
         prompt_parts.extend([
-            "\nNow provide sarcastic analysis with:",
-            "- Gordon Ramsay-level criticism",
-            "- Stand-up comedian timing",
-            "- Bonus points for pop culture references!"
+             "\nNow provide your analysis in peak Dad Joke style:",
+    "- Use puns and light-hearted humor",
+    "- Keep it supportive, like you're proud of a bug report",
+    "- Bonus points for jokes that make engineers groan 😅"
         ])
 
         return "\n".join(prompt_parts)
