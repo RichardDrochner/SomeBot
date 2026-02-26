@@ -109,7 +109,7 @@ jobs:
 
       # Upload all reports
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-reports
           path: |
@@ -118,7 +118,7 @@ jobs:
 
       # Download the reports
       - name: Download security reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: security-reports
           path: app/downloaded-reports/
